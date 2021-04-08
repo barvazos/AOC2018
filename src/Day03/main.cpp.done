@@ -1,0 +1,120 @@
+#include "aoc2018_util.h"
+
+#define FABRIC_SIZE 1000
+struct Claim
+{
+    int32_t id = 0;
+    int32_t x = 0;
+    int32_t y = 0;
+    int32_t w = 0;
+    int32_t h = 0;
+    int32_t r = 0;  // right edge
+    int32_t b = 0;  // bottom edge
+};
+
+Claim parse_claim(const std::string& str)
+{
+    Claim Claim;
+    int32_t x,y,w,h;
+    std::sscanf(str.c_str(), "#%d @ %d,%d: %dx%d", 
+        &Claim.id,
+        &Claim.x,
+        &Claim.y,
+        &Claim.w,
+        &Claim.h
+    );
+    Claim.r = Claim.x + Claim.w;
+    Claim.b = Claim.y + Claim.h;
+    return Claim;
+}
+
+std::vector<Claim> read_claim_iput(const char* input_path)
+{
+    std::ifstream ifs(input_path);
+    std::string claim_str;
+    std::vector<Claim> claims;
+
+    while (std::getline(ifs, claim_str))
+    {
+        claims.push_back(parse_claim(claim_str));
+    }
+    return claims;
+}
+
+int32_t solve_part_1(const std::vector<Claim>& claims)
+{
+    auto right_most = *std::max_element(claims.cbegin(), claims.cend(), 
+                        [](const Claim& a,const Claim& b) { return a.r < b.r; });
+    auto bottom_most = *std::max_element(claims.cbegin(), claims.cend(), 
+                        [](const Claim& a,const Claim& b) { return a.b < b.b; });
+    
+    std::vector<std::vector<int>> fabric;
+    fabric.reserve(bottom_most.b);
+    for (int i = 0; i < bottom_most.b; ++i) 
+    {
+		fabric.emplace_back(right_most.r, 0);
+	}
+
+    for (const auto& claim: claims)
+    {
+        for (int y = claim.y; y < claim.b; ++y)
+        {
+            for (int x = claim.x; x < claim.r; ++x)
+            {
+                fabric[y][x]++;
+            }
+        }
+    }
+
+    std::int32_t overlaps = 0;
+    for (const auto& row: fabric)
+    {
+        overlaps += std::count_if(row.cbegin(), row.cend(), [](int c){ return c > 1; });
+    }
+    
+    return overlaps;
+}
+
+bool claims_overlap(const Claim &claim_a, const Claim &claim_b)
+{
+	return claim_a.r > claim_b.x &&
+           claim_a.b > claim_b.y &&
+           claim_b.r > claim_a.x &&
+           claim_b.b > claim_a.y;
+}
+
+int32_t solve_part_2(const std::vector<Claim>& claims)
+{
+    std::set<int32_t> overlapping_claim_ids;
+    for (int32_t i = 1; i < claims.size(); ++i)
+    {
+        for (int32_t j = 0; j < i; ++j)
+        {
+            if (claims_overlap(claims[i], claims[j]))
+            {
+                overlapping_claim_ids.insert(claims[i].id);
+                overlapping_claim_ids.insert(claims[j].id);
+            }
+        }
+    }
+    for (auto& claim: claims)
+    {
+        if (overlapping_claim_ids.find(claim.id) == overlapping_claim_ids.end())
+        {
+            return claim.id;
+        }
+    }
+    return 0;
+}
+
+int main(int argc, char *argv[])
+{
+	if (argc < 2) {
+        std::cerr << "Missing an input file\n";
+        return -1;
+    }
+
+    std::vector<Claim> claims = read_claim_iput(argv[1]);
+	std::cout << "Day03 part 1 solution is: " << solve_part_1(claims) << std::endl;
+	std::cout << "Day03 part 2 solution is: " << solve_part_2(claims) << std::endl;
+}

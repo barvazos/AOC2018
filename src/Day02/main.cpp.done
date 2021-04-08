@@ -1,0 +1,117 @@
+#include "aoc2018_util.h"
+
+
+void count_has_2_or_3(const std::string& str, int& has_two_count, int& has_three_count)
+{
+    int32_t letter_reps[26] = {};
+    bool has_two = false;
+    bool has_three = false;
+
+    for (const char c : str) 
+    {
+        letter_reps[c - 'a']++;
+    }
+
+    for (const auto i : letter_reps) 
+    {
+        if (i == 2) { has_two = true; }
+        if (i == 3) { has_three = true; };
+    }
+    
+    if (has_two) { has_two_count++; }
+    if (has_three) { has_three_count++; }
+}
+
+
+int32_t solve_part_1(const std::vector<std::string>& strings)
+{
+    int32_t has_two_count = 0;
+    int32_t has_three_count = 0;
+    
+    for (auto & str : strings)
+    {    
+        count_has_2_or_3(str, has_two_count, has_three_count);
+    }
+    return has_three_count * has_two_count;
+}
+
+bool is_off_by_one(const std::string& str1, const std::string& str2)
+{
+    if (str1.size() != str2.size())
+        {
+            return false;
+        }
+
+    int diffs = 0;
+    for (int i = 0; i < str1.size(); i++)
+    {
+        if (str1[i] != str2[i])
+        {
+            diffs++;
+        }
+
+        if (diffs > 1)
+        {
+            break;
+        }
+    }
+
+    if (diffs == 1)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+
+std::string create_string(const std::string& str1, const std::string& str2)
+{
+    std::string new_str;
+
+    for (int i = 0; i < str1.size(); ++i)
+    {
+        if (str1[i] == str2[i]) 
+        {
+            new_str += str1[i];
+        }
+    }
+    return new_str;
+}
+
+
+std::string solve_part_2(const std::vector<std::string>& strings)
+{
+    auto first = strings.begin();
+    const auto last = --strings.end();
+
+    while (first != last)
+    {
+        auto current = first;
+        while(++current != last)
+        {
+            if (is_off_by_one(*current, *first))
+            {
+                return create_string(*current, *first);
+            }
+        }
+        first++;
+    }
+
+    std::string fail = "failed to find proper result";
+    return fail;
+};
+
+
+int main(int argc, char *argv[])
+{
+	if (argc < 2) {
+        std::cerr << "Missing an input file\n";
+        return -1;
+    }
+
+    std::ifstream ifs(argv[1]);
+    const std::vector<std::string> strings(std::istream_iterator<std::string>(ifs), {});
+	std::cout << "Day02 part 1 solution is: " << solve_part_1(strings) << std::endl;
+	std::cout << "Day02 part 2 solution is: " << solve_part_2(strings) << std::endl;
+}

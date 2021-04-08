@@ -1,0 +1,128 @@
+#include "aoc2018_util.h"
+#define CUTOFF 10000    // for part 2
+
+struct Point
+{
+    int32_t x = 0;
+    int32_t y = 0;
+};
+
+struct BoundingBox
+{
+    int32_t min_x = std::numeric_limits<int32_t>::max();
+    int32_t min_y = std::numeric_limits<int32_t>::max();
+    int32_t max_x = std::numeric_limits<int32_t>::min();
+    int32_t max_y = std::numeric_limits<int32_t>::min();
+
+    bool is_point_on_edge(Point p)
+    {
+        return p.x == min_x || p.y == min_y || p.x == max_x || p.y == max_y;
+    }
+};
+
+BoundingBox bbox;
+
+std::vector<Point> read_coordinates(const std::string& input_file)
+{
+    std::ifstream ifs(input_file);
+    std::vector<Point> points;
+    std::string s;
+
+    while (std::getline(ifs, s))
+    {
+        Point p;
+        std::sscanf(s.c_str(), "%d, %d", &p.x, &p.y);
+        points.push_back(std::move(p));
+    }
+    return points;
+}
+
+int32_t get_distance(const Point& lhs, const Point& rhs)
+{
+    return std::abs(lhs.x - rhs.x) + std::abs(lhs.y - rhs.y);
+}
+
+
+int32_t solve_part_1(const std::vector<Point>& points)
+{
+    for (auto& p : points)
+    {
+        bbox.min_x = std::min(p.x, bbox.min_x);
+        bbox.min_y = std::min(p.y, bbox.min_y);
+        bbox.max_x = std::max(p.x, bbox.max_x);
+        bbox.max_y = std::max(p.y, bbox.max_y);
+    }
+
+    std::vector<int32_t> sizes(points.size(), 0);
+
+    for (int32_t y = bbox.min_y; y < bbox.max_y; ++y)
+    {
+        for (int32_t x = bbox.min_x; x < bbox.max_x; ++x)
+        {
+            int32_t min_distance = std::numeric_limits<int32_t>::max();
+            int32_t closest_point = -1;
+            bool multi_touched = false;
+
+            for (size_t i = 0; i < points.size(); ++i)
+            {
+                int32_t distance = get_distance({x, y}, points[i]);
+                if (distance < min_distance)
+                {
+                    min_distance = distance;
+                    closest_point = i;
+                    multi_touched = false;
+                }
+                else if (distance == min_distance)
+                {
+                    multi_touched = true;
+                }
+            }
+
+            if (!multi_touched && sizes[closest_point] != -1)
+            {
+                if (bbox.is_point_on_edge({x, y}))
+                {
+                    sizes[closest_point] = -1;
+                }
+                else
+                {
+                    sizes[closest_point]++;
+                }
+            }
+        }
+    }
+    int32_t res = *std::max_element(sizes.begin(), sizes.end());
+    return res;
+}
+
+int32_t solve_part_2(const std::vector<Point>& points)
+{
+    int32_t area_size = 0;
+     for (int32_t y = bbox.min_y; y < bbox.max_y; ++y)
+    {
+        for (int32_t x = bbox.min_x; x < bbox.max_x; ++x)
+        {
+            int32_t sum_of_distances = std::accumulate(points.begin(), points.end(), 0, 
+            [&](int sum, const auto& p){ return sum + get_distance({x, y}, p); });
+
+            if (sum_of_distances < CUTOFF)
+            {
+                area_size++;
+            }
+        }
+    }
+    return area_size;
+}
+
+int32_t main(int32_t argc, char *argv[])
+{
+	if (argc < 2) {
+        std::cerr << "Missing an input file\n";
+        return -1;
+    }
+
+    const auto points = read_coordinates(argv[1]);
+
+	std::cout << "Day06 part 1 solution is: " << solve_part_1(points) << std::endl;
+	std::cout << "Day06 part 2 solution is: " << solve_part_2(points) << std::endl;
+}

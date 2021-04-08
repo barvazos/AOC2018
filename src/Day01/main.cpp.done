@@ -1,0 +1,40 @@
+#include "aoc2018_util.h"
+
+
+int32_t solve_part_1(const std::vector<int32_t>& input)
+{
+    return std::accumulate(input.begin(), input.end(), 0);
+}
+
+int32_t solve_part_2(const std::vector<int32_t>& input)
+{
+    std::set<int32_t> set;
+    int32_t frequency = 0;
+
+    while(true)
+    {
+        for(int32_t change : input)
+        {
+            frequency += change;
+            if (set.find(frequency) != set.end())
+            {
+                return frequency;
+            }
+            set.insert(frequency);
+        }
+    }
+    return std::accumulate(input.begin(), input.end(), 0);
+}
+
+int main(int argc, char *argv[])
+{
+	if (argc < 2) {
+        std::cerr << "Missing an input file\n";
+        return -1;
+    }
+
+    std::ifstream ifs(argv[1]);
+    const std::vector<int32_t> numbers((std::istream_iterator<int32_t>(ifs)), {});
+	std::cout << "Day01 part 1 solution is: " << solve_part_1(numbers) << std::endl;
+	std::cout << "Day01 part 2 solution is: " << solve_part_2(numbers) << std::endl;
+}

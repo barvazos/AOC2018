@@ -1,0 +1,159 @@
+#include "aoc2018_util.h"
+
+struct SleepEvent 
+{
+    std::tm start;
+    std::tm end;
+
+    short minutes_slept() { return end.tm_min - start.tm_min; }
+};
+
+using GuardEvent = std::pair<time_t, std::string>;
+using GaurdsMap = std::map<int, std::vector<SleepEvent>>;
+
+GuardEvent parse_event(const char* event_str)
+{
+    int32_t year, month, day, hour, minute;
+    std::tm t = {};
+    std::sscanf(event_str, "[%d-%d-%d %d:%d]", &year, &month, &day, &hour, &minute);
+    t.tm_year = year - 1400;
+    t.tm_mon = month;
+    t.tm_mday = day;
+    t.tm_hour = hour;
+    t.tm_min = minute;
+    time_t timestamp = std::mktime(&t);
+    return std::make_pair(timestamp, event_str);
+}
+
+std::vector<GuardEvent> read_events_input(const std::string& guard_events_path)
+{
+    std::ifstream ifs(guard_events_path);
+    std::string event_str;
+    std::vector<GuardEvent> events;   
+
+    while (std::getline(ifs, event_str))
+    {
+        events.push_back(parse_event(event_str.c_str()));
+    }
+    return events;
+}
+
+GaurdsMap get_guards_to_sleep_map(const std::vector<GuardEvent>& events)
+{
+    GaurdsMap sleep_map;
+
+    int32_t guard_id = -1;
+    SleepEvent sleep_event;
+    for (const auto&[time, record] : events)
+    {
+        auto hash = record.find('#');
+        if (hash != std::string::npos)
+        {
+            guard_id = std::stoi(record.substr(hash + 1));
+        }
+
+        auto fall_asleep = record.find("falls asleep");
+        if (fall_asleep != std::string::npos)
+        {
+            sleep_event.start = *std::localtime(&time);
+        }
+
+        auto wake_up = record.find("wakes up");
+        if (wake_up != std::string::npos)
+        {
+            sleep_event.end = *std::localtime(&time);
+            sleep_map[guard_id].push_back(sleep_event);     // assuming that records are valid...
+        }
+    }
+    return sleep_map;
+}
+
+short get_index(const std::vector<int>& sleep_minutes, int32_t val)
+{
+    auto it = std::find(sleep_minutes.begin(), sleep_minutes.end(), val);
+    short index = it - sleep_minutes.begin();
+    return index;
+}
+
+short sleepiest_minute(const std::vector<SleepEvent>& sleep_events, int32_t & max_minutes)
+{
+    std::vector<int> sleep_minutes(60, 0);
+    for (auto& e: sleep_events)
+    {
+        for (int32_t i = e.start.tm_min; i < e.end.tm_min; ++i)
+        {
+            sleep_minutes[i]++;
+        }
+    }
+
+    max_minutes = *std::max_element(sleep_minutes.begin(), sleep_minutes.end());
+    short maximal_minute = get_index(sleep_minutes, max_minutes);
+    return maximal_minute;
+}
+
+int32_t solve_part_1(std::vector<GuardEvent>& events)
+{
+    std::sort(events.begin(), events.end());
+    GaurdsMap guards_map = get_guards_to_sleep_map(events);
+
+    short sleepiest_guard_id = -1;
+    int32_t max_sleep_time = 0;
+
+    for (auto&[id, sleep_events]: guards_map)
+    {
+        int32_t sleep_time = std::accumulate(sleep_events.begin(), sleep_events.end(), 0, 
+        [](int32_t total, auto& sleep_event)
+        {
+            return total + sleep_event.minutes_slept();
+        }
+        );
+
+        if (sleep_time > max_sleep_time)
+        {
+            max_sleep_time = sleep_time;
+            sleepiest_guard_id = id;
+        }
+    }
+    
+    int32_t max_minutes = -1;
+    return sleepiest_guard_id * sleepiest_minute(guards_map[sleepiest_guard_id], max_minutes);  
+}
+
+
+int32_t solve_part_2(std::vector<GuardEvent>& events)
+{
+    std::sort(events.begin(), events.end());
+    GaurdsMap guards_map = get_guards_to_sleep_map(events);
+    
+    short frequent_sleep_gaurd_id = -1;
+    short maximal_minute = -1;
+    short maximal_gaurd_minute = -1;
+    int32_t max_frequence = 0;
+    int32_t max_guard_frequence = 0;
+
+    for (auto&[id, sleep_events]: guards_map)
+    {
+        max_guard_frequence = 0;
+        maximal_gaurd_minute = sleepiest_minute(sleep_events, max_guard_frequence);
+        if (max_guard_frequence > max_frequence)
+        {
+            max_frequence = max_guard_frequence;
+            maximal_minute = maximal_gaurd_minute;
+            frequent_sleep_gaurd_id = id;
+        }
+    }
+    int32_t res = frequent_sleep_gaurd_id * maximal_minute;
+    return res;
+}
+
+int32_t main(int32_t argc, char *argv[])
+{
+	if (argc < 2) {
+        std::cerr << "Missing an input file\n";
+        return -1;
+    }
+
+    std::vector<GuardEvent> guard_events = read_events_input(argv[1]);
+	std::cout << "Day04 part 1 solution is: " << solve_part_1(guard_events) << std::endl;
+	std::cout << "Day04 part 2 solution is: " << solve_part_2(guard_events) << std::endl;
+}

@@ -1,0 +1,53 @@
+#include "aoc2018_util.h"
+
+int32_t solve_part_1(std::list<char>& polymer_list)
+{
+    for (auto it = polymer_list.begin(); it != polymer_list.end(); ) 
+    {
+        if (it != polymer_list.begin())
+        {
+            auto prev = std::prev(it);
+
+			if (std::tolower(*it) == std::tolower(*prev) && *it != *prev) 
+            {
+				polymer_list.erase(prev);
+				it = polymer_list.erase(it);
+				continue;
+			}
+		}
+		++it;
+	}
+    return polymer_list.size();
+}
+
+int32_t solve_part_2(std::list<char>& polymer_list)
+{
+    int32_t min_len = INT32_MAX;
+
+    for (char letter = 'a'; letter <= 'z'; letter++)
+    {
+        std::list<char> poly_copy(polymer_list);
+        poly_copy.remove_if([&](char ch) { return std::tolower(ch) == letter; });
+
+        int32_t collapsed_polymer_len = solve_part_1(poly_copy);
+        min_len = std::min(collapsed_polymer_len, min_len);
+    }
+    return min_len;
+}
+
+int32_t main(int32_t argc, char *argv[])
+{
+	if (argc < 2) {
+        std::cerr << "Missing an input file\n";
+        return -1;
+    }
+
+    std::ifstream ifs(argv[1]);
+    std::string polymer;
+    std::getline(ifs, polymer);
+    std::list<char> polymer_list1(polymer.begin(), polymer.end());
+    std::list<char> polymer_list2(polymer_list1);
+
+	std::cout << "Day05 part 1 solution is: " << solve_part_1(polymer_list1) << std::endl;
+	std::cout << "Day05 part 2 solution is: " << solve_part_2(polymer_list2) << std::endl;
+}
